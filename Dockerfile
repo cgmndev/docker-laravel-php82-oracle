@@ -4,6 +4,7 @@ LABEL maintainer="claudio.mnec@gmail.com"
 
 ARG WWWGROUP
 ARG NODE_VERSION=18
+ARG POSTGRES_VERSION=15
 
 WORKDIR /var/www/html
 
@@ -46,16 +47,19 @@ RUN apt-get update \
     && npm install -g npm \
     && curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add - \
     && echo "deb https://dl.yarnpkg.com/debian/ stable main" > /etc/apt/sources.list.d/yarn.list \
+    && curl -sS https://www.postgresql.org/media/keys/ACCC4CF8.asc | gpg --dearmor | tee /etc/apt/keyrings/pgdg.gpg >/dev/null \
+    && echo "deb [signed-by=/etc/apt/keyrings/pgdg.gpg] http://apt.postgresql.org/pub/repos/apt jammy-pgdg main" > /etc/apt/sources.list.d/pgdg.list \
     && apt-get update \
     && apt-get install -y yarn \
     && apt-get install -y mysql-client \
-    && apt-get install -y postgresql-client \
+    && apt-get install -y postgresql-client-$POSTGRES_VERSION \
     && apt-get -y autoremove \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 RUN setcap "cap_net_bind_service=+ep" /usr/bin/php8.2
-RUN useradd -ms /bin/bash -u 1000 myuser
+
+RUN useradd -ms /bin/bash -u 1000 laraveluser
 
 
 RUN	mkdir /opt/oracle
@@ -78,7 +82,6 @@ RUN	cd /opt/oracle/ && \
 	./configure --with-oci8=instantclient,/opt/oracle/instantclient_21_10/ && \
 	make install && \
 	echo 'instantclient,/opt/oracle/instantclient_21_10' | pecl install oci8
-
 
 
 COPY start-container /usr/local/bin/start-container
